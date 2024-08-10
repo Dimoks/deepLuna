@@ -1,9 +1,10 @@
 import io
 import struct
-
+from math import ceil
 
 class Mzp:
     MAGIC = b"mrgd00"
+    MZP_DEFAULT_ALIGNMENT = 8
 
     class EntryHeader:
         HEADER_FORMAT = "<HHHH"
@@ -62,20 +63,15 @@ class Mzp:
         # Process each section
         packed_data = io.BytesIO()
         for section in sections:
-            # Round the start of each section to a word boundary
-            while packed_data.tell() % 16 != 0:
-                packed_data.write(b"\xff")
-
             # Calculate the header info
             section_start_offset = packed_data.tell()
             section_sector_offset = \
                 section_start_offset // cls.EntryHeader.SECTOR_SIZE
             section_byte_offset = \
                 section_start_offset % cls.EntryHeader.SECTOR_SIZE
-            size_sectors = len(section) // cls.EntryHeader.SECTOR_SIZE
+            size_sectors = ceil((section_start_offset + len(section)) / \
+                cls.EntryHeader.SECTOR_SIZE) - section_sector_offset
             size_bytes = len(section) & 0xFFFF
-            if len(section) % cls.EntryHeader.SECTOR_SIZE:
-                size_sectors += 1
             packed_header.write(struct.pack(
                 cls.EntryHeader.HEADER_FORMAT,
                 section_sector_offset,
@@ -86,14 +82,12 @@ class Mzp:
 
             # Append the section data to the data buffer
             packed_data.write(section)
+            packed_data.write(b'\xFF' * (cls.MZP_DEFAULT_ALIGNMENT - \
+                len(section) % cls.MZP_DEFAULT_ALIGNMENT))
 
         # Consolidate data onto header buffer
         packed_data.seek(0, io.SEEK_SET)
         packed_header.write(packed_data.read())
-
-        # Pad total file size to boundary
-        while packed_header.tell() % 8 != 0:
-            packed_header.write(b"\xff")
 
         # Return accumulated data
         packed_header.seek(0, io.SEEK_SET)
