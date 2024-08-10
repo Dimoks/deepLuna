@@ -28,6 +28,8 @@ class Mzx:
         # Input file read index. Start after the fixed-size header.
         read_offset = 8
 
+        clear_count = 0
+
         # While we have not decompressed all data
         while ret.tell() < decompressed_size:
             # Read the cmd/len from the next input byte
@@ -37,6 +39,10 @@ class Mzx:
             # Extract the actual command and length
             cmd = len_cmd & 0b11
             length = len_cmd >> 2
+
+            if clear_count <= 0:
+                clear_count = 0x1000
+                last_short = b'\xff\xff' if invert else 0x0000
 
             if cmd == cls.CMD_RLE:
                 # Repeat last 2 bytes len+1 times
@@ -78,6 +84,8 @@ class Mzx:
 
                     # Write data to output
                     ret.write(last_short)
+
+            clear_count -= 1 if cmd == cls.CMD_RINGBUF else length + 1
 
         ret.truncate(decompressed_size)
         ret.seek(0)
