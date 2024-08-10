@@ -1,3 +1,5 @@
+import re
+
 class ReadableExporter:
     """
     Human-readable export format is as follows:
@@ -64,16 +66,18 @@ class ReadableExporter:
                 return True
 
         class Entry:
-            def __init__(self, filename, line, en_text, comment):
+            def __init__(self, filename, line, _offset, en_text, comment):
                 self.filename = filename
                 self.line = line
+                self._offset = _offset
                 self.en_text = en_text
                 self.comment = comment
 
             def __repr__(self):
                 return (
                     f"Diff.Entry(filename='{self.filename}', "
-                    f"line={self.line}, en_text='{self.en_text}', "
+                    f"line={self.line}, _offset={self._offset}, "
+                    f"en_text='{self.en_text}', "
                     f"comment='{self.comment}')"
                 )
 
@@ -97,24 +101,26 @@ class ReadableExporter:
 
             return False
 
-        def add_sha_entry(self, sha, filename, line, en_text, comment):
+        def add_sha_entry(self, sha, filename, line, _offset, en_text, comment):
             if sha not in self.entries_by_sha:
                 self.entries_by_sha[sha] = self.EntryGroup()
 
             self.entries_by_sha[sha].add_entry(self.Entry(
                 filename,
                 line,
+                _offset,
                 en_text,
                 comment
             ))
 
-        def add_offset_entry(self, offset, filename, line, en_text, comment):
+        def add_offset_entry(self, offset, filename, line, _offset, en_text, comment):
             if offset not in self.entries_by_offset:
                 self.entries_by_offset[offset] = self.EntryGroup()
 
             self.entries_by_offset[offset].add_entry(self.Entry(
                 filename,
                 line,
+                _offset,
                 en_text,
                 comment
             ))
@@ -142,6 +148,7 @@ class ReadableExporter:
         state = cls.LexState.EXPECT_BLOCK
         cmd_acc = ""
         active_content_hash = None
+        _offset = None
         active_block_is_offset_override = False
         line_counter = 1
         brace_count = 0
@@ -300,6 +307,7 @@ class ReadableExporter:
                                 int(active_content_hash),
                                 filename,
                                 line_counter,
+                                int(_offset),
                                 translated_text or None,
                                 human_comments or None
                             )
@@ -308,6 +316,7 @@ class ReadableExporter:
                                 active_content_hash,
                                 filename,
                                 line_counter,
+                                int(_offset),
                                 translated_text or None,
                                 human_comments or None
                             )
@@ -324,6 +333,13 @@ class ReadableExporter:
                     rstrip_acc = cmd_acc[:-1].rstrip()
                     if rstrip_acc:
                         translated_text += rstrip_acc
+
+                    # Search of offset
+                    if file_text[i:i+6] == '- Page':
+                        m = re.search(r'Page.*?Offset (\d+)', file_text[i:i+30])
+                        if m:
+                            _offset = m[1]
+
                     cmd_acc = ""
 
                     # Open machine comment context
@@ -401,8 +417,8 @@ class ReadableExporter:
                 f"-- Page {line.page_number}, Offset {line.offset}."
                 f"{glued}{choice}{mods}\n"
             )
-            for jp_line in tl_info.jp_text.strip().split('\n'):
-                generated_comment += f"-- {jp_line.strip()}\n"
+            for jp_line in tl_info.jp_text.strip('\n').split('\n'):
+                generated_comment += f"-- {jp_line}\n"
 
             # Collate human comments and prepend //
             human_comment = ""

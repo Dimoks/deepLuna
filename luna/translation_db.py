@@ -1,8 +1,9 @@
+import multiprocessing
+multiprocessing.freeze_support()
 import io
 import copy
 import hashlib
 import json
-import multiprocessing
 import os
 import re
 import struct
@@ -156,7 +157,7 @@ class TranslationDb:
             day = int(scene_name.split('_')[0])
             export_path += [
                 'Arcueid' if is_arc_scene else 'Ciel',
-                f'Day {day}'
+                f'Day {day:02}'
             ]
         elif is_qa_scene:
             export_path += ['QA']
@@ -239,15 +240,15 @@ class TranslationDb:
                 # see if it has any flags we care about here
                 skip_linebreak = '%{no_break}' in tl_text
 
-                # Reify any custom control codes present in the line
-                coded_text = RubyUtils.apply_control_codes(tl_text)
-
                 # If we are performing a charswap, do so now
                 if perform_charswap:
-                    coded_text = ''.join([
-                        self._charswap_map.get(c, c) for c in coded_text
+                    tl_text = ''.join([
+                        self._charswap_map.get(c, c) for c in tl_text
                     ])
 
+                # Reify any custom control codes present in the line
+                coded_text = RubyUtils.apply_control_codes(tl_text)
+                
                 # If this line is glued, and would start with a space, but the
                 # preceding line ended in a newline, drop the leading space.
                 if coded_text and command.is_glued and cmd_offset - 1 >= 0:
@@ -473,6 +474,9 @@ class TranslationDb:
                 entry_group.entries[0].en_text,
                 entry_group.entries[0].comment,
             )
+            offset = entry_group.entries[0]._offset
+            if offset in self._overrides_by_offset:
+                del self._overrides_by_offset[offset]
 
         for offset, entry_group in diff.entries_by_offset.items():
             # If there's duplicate offset entries somehow, they gotta fix that
