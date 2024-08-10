@@ -44,6 +44,7 @@ class StartWindow:
             text="Extract text",
             bg="#CFCFCF",
             width=28,
+            font='TkDefaultFont 11',
             command=self.btn_extract_database
         )
         self._new_project_button.grid(row=0,column=0,pady=2)
@@ -54,6 +55,7 @@ class StartWindow:
             text="Open translation",
             bg="#CFCFCF",
             width=28,
+            font='TkDefaultFont 11',
             command=self.btn_open_main_window
         )
         self._open_project_button.grid(row=1,column=0,pady=2)
@@ -64,11 +66,17 @@ class StartWindow:
             text="About",
             bg="#CFCFCF",
             width=28,
+            font='TkDefaultFont 11',
             command=self.btn_open_about
         )
         self._about_button.grid(row=2,column=0,pady=2)
 
         self._frame_buttons.pack(side=tk.LEFT)
+
+        self._root.update_idletasks()
+        x = (self._root.winfo_screenwidth() - self._root.winfo_reqwidth()) / 2
+        y = (self._root.winfo_screenheight() - self._root.winfo_reqheight()) / 2
+        self._root.wm_geometry("+%d+%d" % (x, y))
 
     def mainloop(self):
         self._root.mainloop()
@@ -98,6 +106,7 @@ class StartWindow:
                 self._warning,
                 text=f"Failed to open translation:\n{e}\n"
                      f"{traceback.format_exc()}",
+                font='TkDefaultFont 11',
                 justify=tk.LEFT
             )
             warning_message.grid(row=0, column=0, padx=5, pady=5)
@@ -129,7 +138,8 @@ class StartWindow:
             # Set message
             warning_message = tk.Label(
                 self._warning,
-                text="Existing database found. Do you wish to overwrite?"
+                text="Existing database found. Do you wish to overwrite?",
+                font='TkDefaultFont 11'
             )
             warning_message.grid(row=0, column=0, pady=5, columnspan=2)
 
@@ -137,6 +147,7 @@ class StartWindow:
             warning_button = tk.Button(
                 self._warning,
                 text="Cancel",
+                font='TkDefaultFont 11',
                 command=self.btn_cancel_warning
             )
             warning_button.grid(row=1, column=0, pady=10)
@@ -144,9 +155,16 @@ class StartWindow:
             warning_button = tk.Button(
                 self._warning,
                 text="Overwrite",
+                font='TkDefaultFont 11',
                 command=self.extract_database
             )
             warning_button.grid(row=1, column=1, pady=10)
+
+            self._warning.update()
+            x = (self._warning.winfo_screenwidth() - self._warning.winfo_reqwidth()) / 2
+            y = (self._warning.winfo_screenheight() - self._warning.winfo_reqheight()) / 2
+            self._warning.wm_geometry("+%d+%d" % (x, y))
+
             return
 
         # Attempt to extract the DB
@@ -194,6 +212,7 @@ class StartWindow:
                 self._warning,
                 text=f"Failed to extract database:\n{e}\n"
                      f"{traceback.format_exc()}",
+                font='TkDefaultFont 11',
                 justify=tk.LEFT
             )
             warning_message.grid(row=0, column=0, padx=5, pady=5)
@@ -202,6 +221,12 @@ class StartWindow:
             warning_button = tk.Button(
                 self._warning,
                 text="OK",
+                font='TkDefaultFont 11',
                 command=self.btn_cancel_warning
             )
             warning_button.grid(row=1, column=0, pady=10)
+
+            self._warning.update()
+            x = (self._warning.winfo_screenwidth() - self._warning.winfo_reqwidth()) / 2
+            y = (self._warning.winfo_screenheight() - self._warning.winfo_reqheight()) / 2
+            self._warning.wm_geometry("+%d+%d" % (x, y))

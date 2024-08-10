@@ -18,6 +18,7 @@ class InformationWindow:
                 "deepLuna v3.1.2 — 18/10/2021\n"
                 "Developed by Hakanaou and R.Schlaikjer\n"
             ),
+            font='TkDefaultFont 11',
             justify=tk.CENTER,
             borderwidth=10
         ).pack()
@@ -25,9 +26,15 @@ class InformationWindow:
         self.explanations = tk.Button(
             self._root,
             text="deepLuna GitHub",
+            font='TkDefaultFont 11',
             command=self.btn_open_github
         )
         self.explanations.pack()
+
+        self._root.update_idletasks()
+        x = (self._root.winfo_screenwidth() - self._root.winfo_reqwidth()) / 2
+        y = (self._root.winfo_screenheight() - self._root.winfo_reqheight()) / 2
+        self._root.wm_geometry("+%d+%d" % (x, y))
 
     @staticmethod
     def btn_open_github():
