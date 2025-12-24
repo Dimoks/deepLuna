@@ -5,7 +5,10 @@ import time
 
 from functools import cmp_to_key
 
+import platform
+
 import tkinter as tk
+import tkinter.scrolledtext as st
 from tkinter.ttk import (
     Style,
     Treeview,
@@ -15,6 +18,87 @@ from luna.constants import Constants
 from luna.readable_exporter import ReadableExporter
 from luna.translation_db import TranslationDb
 
+class VerticalScrolledFrame(tk.Frame):
+    """
+    Source: https://gist.github.com/JackTheEngineer/81df334f3dcff09fd19e4169dd560c59
+
+    A pure Tkinter scrollable frame that actually works!
+    * Use the 'interior' attribute to place widgets inside the scrollable frame
+    * Construct and pack/place/grid normally
+    * This frame only allows vertical scrolling
+    * This comes from a different naming of the the scrollwheel 'button', on different systems.
+    """
+    def __init__(self, parent, *args, **kw):
+
+        super().__init__(parent, *args, **kw)
+
+        # create a canvas object and a vertical scrollbar for scrolling it
+        self.vscrollbar = tk.Scrollbar(self, orient=tk.VERTICAL)
+        self.vscrollbar.pack(fill=tk.Y, side=tk.RIGHT, expand=tk.FALSE)
+        self.canvas = tk.Canvas(self, bd=0, highlightthickness=0, yscrollcommand=self.vscrollbar.set)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.TRUE)
+        self.vscrollbar.config(command=self.canvas.yview)
+
+        # reset the view
+        self.canvas.xview_moveto(0)
+        self.canvas.yview_moveto(0)
+
+        # create a frame inside the canvas which will be scrolled with it
+        self.interior = tk.Frame(self.canvas)
+        self.interior_id = self.canvas.create_window(0, 0, window=self.interior,
+                                           anchor=tk.NW)
+
+        self.interior.grid_columnconfigure(0, weight=1)
+
+        self.interior.bind('<Configure>', self._configure_interior)
+        self.canvas.bind('<Configure>', self._configure_canvas)
+        self.canvas.bind('<Enter>', self._bind_to_mousewheel)
+        self.canvas.bind('<Leave>', self._unbind_from_mousewheel)
+
+        # track changes to the canvas and frame width and sync them,
+        # also updating the scrollbar
+
+    def _configure_interior(self, event):
+        # update the scrollbars to match the size of the inner frame
+        size = (self.interior.winfo_reqwidth(), self.interior.winfo_reqheight())
+        self.canvas.config(scrollregion="0 0 %s %s" % size)
+
+        if self.interior.winfo_reqwidth() != self.winfo_width():
+            # update the canvas's width to fit the inner frame
+            self.canvas.config(width=self.interior.winfo_reqwidth())
+
+    def _configure_canvas(self, event):
+        if self.interior.winfo_reqwidth() != self.winfo_width():
+            # update the inner frame's width to fill the canvas
+            self.canvas.itemconfigure(self.interior_id, width=self.winfo_width())
+
+    def onMouseWheel(self, event):
+        # cross platform scroll wheel event
+        if platform.system() == 'Windows':
+            self.canvas.yview_scroll(int(-1* (event.delta/120)), "units")
+        elif platform.system() == 'Darwin':
+            self.canvas.yview_scroll(int(-1 * event.delta), "units")
+        else:
+            if event.num == 4:
+                self.canvas.yview_scroll( -1, "units" )
+            elif event.num == 5:
+                self.canvas.yview_scroll( 1, "units" )
+
+    def _bind_to_mousewheel(self, event):
+        # bind wheel events when the cursor enters the control
+        if platform.system() == 'Linux':
+            self.canvas.bind_all("<Button-4>", self.onMouseWheel)
+            self.canvas.bind_all("<Button-5>", self.onMouseWheel)
+        else:
+            self.canvas.bind_all("<MouseWheel>", self.onMouseWheel)
+
+    def _unbind_from_mousewheel(self, event):
+        # unbind wheel events when the cursor leaves the control
+        if platform.system() == 'Linux':
+            self.canvas.unbind_all("<Button-4>")
+            self.canvas.unbind_all("<Button-5>")
+        else:
+            self.canvas.unbind_all("<MouseWheel>")
 
 class TranslationWindow:
 
@@ -532,7 +616,7 @@ class TranslationWindow:
             if not entry_group.is_unique()
         }
 
-        print(f"Conflict count: {len(self._active_conflicts)} ")
+        print(f"Conflict count: {len(self._active_conflicts)}")
 
         # Prompt to save the DB
         self._conflict_dialog = tk.Toplevel(self._root)
@@ -544,28 +628,39 @@ class TranslationWindow:
         # Warning text
         warning_message = tk.Label(
             self._conflict_dialog,
-            text=f"Import detected {len(self._active_conflicts)} conflicts"
+            text=f"Import detected {len(self._active_conflicts)} conflicts\n\n"
+                f"Select rows to write them by offset",
         )
         warning_message.grid(row=0, column=0, pady=5)
 
         # Conflict entries
         self._conflict_listboxes = []
-        frame_listboxes = tk.Frame(self._conflict_dialog, borderwidth=2)
+        frame_listboxes = VerticalScrolledFrame(self._conflict_dialog, borderwidth=2)
         ordered_hashes = sorted(self._active_conflicts.keys())
         for jp_hash in ordered_hashes:
             jp_text = self._translation_db.tl_line_with_hash(jp_hash).jp_text
             entry_group = self._active_conflicts[jp_hash]
-            tk.Label(
-                frame_listboxes,
-                text=f"{jp_hash}\n{jp_text.rstrip()}"
-            ).grid(row=len(self._conflict_listboxes)*2, column=0)
+
+            conflict_text = tk.Text(frame_listboxes.interior,
+                height = 3,
+                wrap="word",
+                bg="#f0f0f0",
+                highlightbackground="#A8A8A8"
+            )
+            conflict_text.grid(row=len(self._conflict_listboxes)*2, column=0, sticky="we")
+            conflict_text.insert("1.0", f"{len(entry_group.entries)} "
+                f"lines of:\n{jp_hash}\n{jp_text.rstrip()}"
+            )
+            conflict_text.config(state=tk.DISABLED)
+
+            print(f"{len(entry_group.entries)} lines of:\n{jp_hash}\n{jp_text.rstrip()}")
 
             # Create a listbox to select the correct tl
             option_listbox = tk.Listbox(
-                frame_listboxes,
+                frame_listboxes.interior,
                 height=len(entry_group.entries),
-                exportselection=False,
-                selectmode=tk.SINGLE
+                exportselection=True,
+                selectmode=tk.MULTIPLE
             )
             option_listbox.grid(
                 row=len(self._conflict_listboxes)*2+1,
@@ -580,9 +675,12 @@ class TranslationWindow:
                 option_listbox.insert(
                     idx,
                     f"{os.path.basename(entry.filename)}:L{entry.line}: "
-                    f"{entry.en_text}"
+                    f"offset: {entry._offset}, {entry.en_text}"
                 )
                 idx += 1
+
+                print(f"{os.path.normpath(entry.filename.replace('import', ''))}"
+                    f"({entry.line}): offset: {entry._offset}, {entry.en_text}")
 
             # Cache a reference
             self._conflict_listboxes.append(option_listbox)
@@ -612,6 +710,11 @@ class TranslationWindow:
         self._conflict_dialog.grid_rowconfigure(1, weight=1)
         self._conflict_dialog.grid_rowconfigure(2, weight=0)
 
+        self._conflict_dialog.update()
+        x = (self._conflict_dialog.winfo_screenwidth() - self._conflict_dialog.winfo_reqwidth()) / 2
+        y = (self._conflict_dialog.winfo_screenheight() - self._conflict_dialog.winfo_reqheight()) / 2
+        self._conflict_dialog.wm_geometry("+%d+%d" % (x, y))
+
     def commit_conflict_resolution(self):
         # Iterate each of the selectors, and if something is selected commit it
         ordered_hashes = sorted(self._active_conflicts.keys())
@@ -624,12 +727,21 @@ class TranslationWindow:
             if not selected_indexes:
                 continue
 
-            selected_index = selected_indexes[0]
-            selected_tl = entry_group.entries[selected_index]
+            for index in range(listbox.size()):
+                if index not in selected_indexes:
+                    selected_tl = entry_group.entries[index]
+                    print(f"Commit line by {jp_hash}: {selected_tl.en_text}")
+                    self._translation_db.set_translation_and_comment_for_hash(
+                        jp_hash, selected_tl.en_text, selected_tl.comment
+                    )
+                    if selected_tl._offset in self._translation_db._overrides_by_offset:
+                        del self._translation_db._overrides_by_offset[selected_tl._offset]
 
-            print(f"Commit conflict {jp_hash}: {selected_tl.en_text}")
-            self._translation_db.set_translation_and_comment_for_hash(
-                jp_hash, selected_tl.en_text, selected_tl.comment)
+            for selected in selected_indexes:
+                selected_tl = entry_group.entries[selected]
+                print(f"Commit line by offset {selected_tl._offset}: {selected_tl.en_text}")
+                self._translation_db.override_translation_and_comment_for_offset(
+                    selected_tl._offset, selected_tl.en_text, selected_tl.comment)
 
         # Close the dialog
         self.dismiss_conflict_resolution()
