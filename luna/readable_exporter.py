@@ -59,8 +59,12 @@ class ReadableExporter:
                 expect_en = self.entries[0].en_text
                 expect_comment = self.entries[0].comment
                 for i in range(1, len(self.entries)):
-                    if self.entries[i].en_text != expect_en or \
+                    if (self.entries[i].en_text != expect_en and
+                        self.entries[i].en_text != None) or \
                        self.entries[i].comment != expect_comment:
+                        if expect_en == None:
+                            self.entries[0].en_text = self.entries[i].en_text
+                            continue
                         return False
 
                 return True
