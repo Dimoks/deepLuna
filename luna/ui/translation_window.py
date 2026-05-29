@@ -1052,6 +1052,9 @@ class TranslationWindow:
         translated_count = 0
         for line in scene_lines:
             modifiers = []
+            count = self.find_sha_lines(line.jp_hash)[0]
+            if count > 1:
+                modifiers.append(f'({count})')
             if line.has_ruby:
                 modifiers.append('*')
             if line.is_glued:
