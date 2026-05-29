@@ -615,7 +615,8 @@ class TranslationDb:
                 text_refs = re.compile(r"(\$\d+)").findall(arg)
                 text_modifiers = re.compile(r"(\@\w)").findall(arg)
                 offsets = [int(ref[1:]) for ref in text_refs]
-                for offset in offsets:
+                prev_has_forced_newline = None
+                for i, offset in enumerate(offsets):
                     # If we already saw this offset in the file, just skip
                     if offset in seen_offsets:
                         continue
@@ -646,10 +647,20 @@ class TranslationDb:
                         # Does it contain a forced newline at the end
                         and text_offsets[-1].has_forced_newline
                     )
+                    # Check if the current offset follows the previous one
+                    # in the same argument without a newline separating them
+                    is_same_arg_glued = (
+                        i > 0  # Not the first offset in the argument
+                        and prev_has_forced_newline is False
+                    )
                     is_glued = (
-                        (is_msad or has_x_modifier)
+                        (is_msad or has_x_modifier or is_same_arg_glued)
                         and not prev_line_forces_break
                     )
+
+                    # Update previous offset's forced newline
+                    # status for the next iteration
+                    prev_has_forced_newline = has_forced_newline
 
                     # Does the line contain any ruby text?
                     jp_line = strings_by_content_hash[
