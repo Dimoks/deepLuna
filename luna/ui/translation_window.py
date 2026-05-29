@@ -158,6 +158,11 @@ class TranslationWindow:
         # Init total translated percent field
         self.update_global_tl_percent()
 
+        self._root.update_idletasks()
+        x = (self._root.winfo_screenwidth() - self._root.winfo_reqwidth()) / 2
+        y = (self._root.winfo_screenheight() - self._root.winfo_reqheight()) / 2
+        self._root.wm_geometry("+%d+%d" % (x, y))
+
     def update_global_tl_percent(self):
         percent_translated = self._translation_db.translated_percent()
         self.percent_translated_global.delete("1.0", tk.END)
@@ -219,6 +224,12 @@ class TranslationWindow:
         quit_button.grid(row=0, column=1, padx=5, pady=10)
         self.frame_quit_buttons.grid(row=1, column=0, pady=5)
 
+        self._root.update_idletasks()
+        self._warning.update()
+        x = self._root.winfo_x() + 40
+        y = self._root.winfo_y() + 40
+        self._warning.wm_geometry("+%d+%d" % (x, y))
+
     def save_and_quit(self):
         # Save DB
         with open(Constants.DATABASE_PATH, 'wb+') as output:
@@ -238,50 +249,68 @@ class TranslationWindow:
         self._root.destroy()
 
     def init_tl_line_view(self):
-        self.text_frame = tk.Frame(self.frame_editing, borderwidth=20)
+        self.text_frame = tk.Frame(self.frame_editing, borderwidth=5)
 
         # Original JP text field
         self.labels_txt_orig = tk.Label(
             self.text_frame, text="Original text:")
-        self.labels_txt_orig.grid(row=1, column=1)
-        self.text_orig = tk.Text(
+        self.labels_txt_orig.grid(row=0, column=0)
+        self.text_orig = st.ScrolledText(
             self.text_frame,
             width=60,
             height=10,
             borderwidth=5,
+            wrap='word',
             highlightbackground="#A8A8A8"
         )
         self.text_orig.config(state=tk.DISABLED)
-        self.text_orig.grid(row=2, column=1)
+        self.text_orig.grid(row=1, column=0)
 
         # Translated text field
         self.labels_txt_trad = tk.Label(
             self.text_frame, text="Translated text:")
-        self.labels_txt_trad.grid(row=3, column=1)
-        self.text_translated = tk.Text(
+        self.labels_txt_trad.grid(row=2, column=0)
+        self.text_translated = st.ScrolledText(
             self.text_frame,
             width=60,
             height=10,
             borderwidth=5,
+            wrap='word',
             highlightbackground="#A8A8A8"
         )
-        self.text_translated.grid(row=4, column=1)
+        self.text_translated.grid(row=3, column=0)
 
         # Comments field
         self.labels_txt_comment = tk.Label(
             self.text_frame, text="Comments:")
-        self.labels_txt_comment.grid(row=5, column=1)
-        self.text_comment = tk.Text(
+        self.labels_txt_comment.grid(row=4, column=0)
+        self.text_comment = st.ScrolledText(
             self.text_frame,
             width=60,
-            height=2,
+            height=4,
             borderwidth=5,
+            wrap='word',
             highlightbackground="#A8A8A8"
         )
-        self.text_comment.grid(row=6, column=1)
+        self.text_comment.grid(row=5, column=0)
 
         # Text buttons
-        self.frame_buttons = tk.Frame(self.text_frame, borderwidth=10)
+        self.frame_buttons = tk.Frame(self.text_frame, borderwidth=5)
+
+        # Selecting a string recording method
+        self.text_by_sha = tk.Label(self.frame_buttons,
+            text="Write by sha"
+        )
+        self.text_by_sha.grid(row=0, column=0)
+        self.var_write_sha = tk.BooleanVar()
+        self.var_write_sha.set(True)
+        self.option_by_sha = tk.Checkbutton(
+            self.frame_buttons,
+            variable=self.var_write_sha,
+            onvalue=True,
+            offvalue=False
+        )
+        self.option_by_sha.grid(row=0, column=0, sticky="e")
 
         # Update current line
         self.button_save_line = tk.Button(
@@ -289,7 +318,7 @@ class TranslationWindow:
             text="Update Line",
             command=self.save_line
         )
-        self.button_save_line.grid(row=1, column=1, padx=2)
+        self.button_save_line.grid(row=0, column=1, padx=2)
 
         # Save DB
         self.button_save_file = tk.Button(
@@ -297,7 +326,7 @@ class TranslationWindow:
             text="Save DB",
             command=self.save_translation_table
         )
-        self.button_save_file.grid(row=1, column=2, padx=2)
+        self.button_save_file.grid(row=0, column=2, padx=2)
 
         # Pack new script_text mrg
         self.button_insert_translation = tk.Button(
@@ -305,7 +334,7 @@ class TranslationWindow:
             text="Insert",
             command=self.insert_translation
         )
-        self.button_insert_translation.grid(row=1, column=3, padx=2, pady=2)
+        self.button_insert_translation.grid(row=0, column=3, padx=2, pady=2)
 
         # Edit character swap mapping
         self.button_edit_charswap_map = tk.Button(
@@ -313,7 +342,7 @@ class TranslationWindow:
             text="Configure Charswap",
             command=self.edit_charswap_map
         )
-        self.button_edit_charswap_map.grid(row=1, column=4, padx=2, pady=2)
+        self.button_edit_charswap_map.grid(row=0, column=4, padx=2, pady=2)
 
         # Re-scan import dir
         self.button_search_text = tk.Button(
@@ -321,7 +350,7 @@ class TranslationWindow:
             text="Re-Import Updates",
             command=self.import_updates
         )
-        self.button_search_text.grid(row=2, column=1, padx=2, pady=2)
+        self.button_search_text.grid(row=1, column=0, padx=2, pady=2)
 
         # Export selected scene
         self.button_export_page = tk.Button(
@@ -329,7 +358,7 @@ class TranslationWindow:
             text="Export scene",
             command=self.export_page
         )
-        self.button_export_page.grid(row=2, column=2, padx=2, pady=2)
+        self.button_export_page.grid(row=1, column=1, padx=2, pady=2)
 
         # Export _all_ scenes
         self.button_export_all = tk.Button(
@@ -337,13 +366,13 @@ class TranslationWindow:
             text="Export all",
             command=self.export_all_pages
         )
-        self.button_export_all.grid(row=2, column=3, padx=2)
+        self.button_export_all.grid(row=1, column=2, padx=2)
 
         # Pack button region
-        self.frame_buttons.grid(row=7, column=1)
+        self.frame_buttons.grid(row=6, column=0)
 
         # Toggle options frame
-        self.frame_options = tk.Frame(self.text_frame, borderwidth=10)
+        self.frame_options = tk.Frame(self.text_frame, borderwidth=5)
 
         # Should the text be charswapped for non-EN languages?
         self.text_swapText = tk.Label(self.frame_options, text="Swap text")
@@ -361,9 +390,9 @@ class TranslationWindow:
         self.option_swapText.grid(row=0, column=1)
 
         # Pack all containers
-        self.frame_options.grid(row=8, column=1)
-        self.text_frame.pack(side=tk.LEFT)
-        self.frame_editing.grid(row=2, column=1)
+        self.frame_options.grid(row=7, column=0)
+        self.text_frame.grid(row=0, column=2)
+        self.frame_editing.grid(row=1, column=0)
 
     def edit_charswap_map(self):
         self._charswap_map_editor = tk.Toplevel(self._root)
@@ -377,7 +406,7 @@ class TranslationWindow:
                  "One pair per line, separated by a comma"
         ).grid(row=0, column=0)
 
-        self.swap_text_zone = tk.Text(
+        self.swap_text_zone = st.ScrolledText(
             self._charswap_map_editor,
             width=20,
             height=25,
@@ -396,7 +425,7 @@ class TranslationWindow:
         self.swap_text_zone.insert("1.0", existing_map_text)
 
         swap_frame_buttons = tk.Frame(
-            self._charswap_map_editor, borderwidth=10)
+            self._charswap_map_editor, borderwidth=5)
 
         swap_ok_button = tk.Button(
             swap_frame_buttons,
@@ -412,6 +441,11 @@ class TranslationWindow:
         )
         swap_warning_button.grid(row=0, column=1, pady=10)
         swap_frame_buttons.grid(row=2, column=0)
+
+        self._charswap_map_editor.update()
+        x = (self._charswap_map_editor.winfo_screenwidth() - self._charswap_map_editor.winfo_reqwidth()) / 2
+        y = (self._charswap_map_editor.winfo_screenheight() - self._charswap_map_editor.winfo_reqheight()) / 2
+        self._charswap_map_editor.wm_geometry("+%d+%d" % (x, y))
 
     def save_charswap_config(self):
         # Retrieve the new settings text
@@ -458,17 +492,37 @@ class TranslationWindow:
         # Get the line info for the selected offset
         scene_lines = self._translation_db.lines_for_scene(self._loaded_scene)
         selected_line = scene_lines[self._loaded_offset]
+        offset = selected_line.offset
+        jp_hash = selected_line.jp_hash
+        exist_text = self._translation_db.tl_line_with_hash(jp_hash).en_text
+        exist_comment = self._translation_db.tl_line_with_hash(jp_hash).comment
+        count = self.find_sha_lines(jp_hash)[0]
 
         # Extract the new tl/comment
         new_tl = self.text_translated.get("1.0", tk.END).strip("\n")
         new_comment = self.text_comment.get("1.0", tk.END).strip("\n")
 
         # Write them back to the translation DB
-        self._translation_db.set_translation_and_comment_for_hash(
-            selected_line.jp_hash,
-            new_tl,
-            new_comment
-        )
+        write_by_sha = self.var_write_sha.get()
+        if write_by_sha or not (exist_text and count > 1 and \
+                    ((new_tl != exist_text and exist_text != None) \
+                    or (new_comment != exist_comment and exist_comment != None))):
+            print("Write by sha")
+            self._translation_db.set_translation_and_comment_for_hash(
+                jp_hash,
+                new_tl,
+                new_comment
+            )
+            if offset in self._translation_db._overrides_by_offset:
+                del self._translation_db._overrides_by_offset[offset]
+
+        else:
+            print("Override by offset")
+            self._translation_db.override_translation_and_comment_for_offset(
+                offset,
+                new_tl,
+                new_comment
+            )
 
         # Mark the line as green
         self.listbox_offsets.itemconfig(self._loaded_offset, bg='#BCECC8')
@@ -518,6 +572,12 @@ class TranslationWindow:
         )
         warning_button.grid(row=1, column=0, pady=10)
 
+        self._root.update_idletasks()
+        self._warning.update()
+        x = self._root.winfo_x() + 40
+        y = self._root.winfo_y() + 40
+        self._warning.wm_geometry("+%d+%d" % (x, y))
+
     def export_page(self):
         self._translation_db.export_scene(
             self._loaded_scene, Constants.EXPORT_DIRECTORY)
@@ -532,7 +592,7 @@ class TranslationWindow:
         # Set message
         warning_message = tk.Label(
             self._warning,
-            text=f"Exported scene f{self._loaded_scene} "
+            text=f"Exported scene {self._loaded_scene} "
                  f"to {Constants.EXPORT_DIRECTORY}",
             justify=tk.LEFT
         )
@@ -545,6 +605,12 @@ class TranslationWindow:
             command=self.close_warning
         )
         warning_button.grid(row=1, column=0, pady=10)
+
+        self._root.update_idletasks()
+        self._warning.update()
+        x = self._root.winfo_x() + 40
+        y = self._root.winfo_y() + 40
+        self._warning.wm_geometry("+%d+%d" % (x, y))
 
     def export_all_pages(self):
         for scene in self._translation_db.scene_names():
@@ -573,6 +639,13 @@ class TranslationWindow:
             command=self.close_warning
         )
         warning_button.grid(row=1, column=0, pady=10)
+
+        self._root.update_idletasks()
+        self._warning.update()
+        x = self._root.winfo_x() + 40
+        y = self._root.winfo_y() + 40
+        self._warning.wm_geometry("+%d+%d" % (x, y))
+        self._warning.grab_set()
 
     def import_updates(self):
         # Any goodies for us in the update folder?
@@ -608,6 +681,7 @@ class TranslationWindow:
         self.show_conflict_resolution(import_diff)
 
     def show_conflict_resolution(self, diff):
+
         # Cache the active conflict set
         self._active_conflicts = {
             sha: entry_group
@@ -775,32 +849,33 @@ class TranslationWindow:
                     )
 
     def init_line_selector(self):
-        self.line_selector_frame = tk.Frame(self.frame_editing, borderwidth=20)
+        self.line_selector_frame = tk.Frame(self.frame_editing, borderwidth=5)
 
         # Header label
         self.label_offsets = tk.Label(
             self.line_selector_frame,
             text="Original text offsets:")
-        self.label_offsets.pack()
+        self.label_offsets.grid(row = 0, column = 0)
 
         # Listbox containing list of page: text offset
         self.listbox_offsets = tk.Listbox(
             self.line_selector_frame,
-            height=32,
+            height=33,
             width=18,
             exportselection=False,
-            selectmode=tk.SINGLE
+            selectmode=tk.BROWSE
         )
         self.listbox_offsets.bind('<Button-1>', self.load_translation_line)
         self.listbox_offsets.bind('<Return>', self.load_translation_line)
-        self.listbox_offsets.pack(side=tk.LEFT, fill=tk.BOTH)
+        self.listbox_offsets.bind('<<ListboxSelect>>', self.load_translation_line)
+        self.listbox_offsets.grid(row = 1, column = 0, sticky = "nsew")
         self.scrollbar_offsets = tk.Scrollbar(self.line_selector_frame)
-        self.scrollbar_offsets.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.scrollbar_offsets.grid(row = 1, column = 1, sticky = "ns")
 
         self.listbox_offsets.config(yscrollcommand=self.scrollbar_offsets.set)
         self.scrollbar_offsets.config(command=self.listbox_offsets.yview)
 
-        self.line_selector_frame.pack(side=tk.LEFT)
+        self.line_selector_frame.grid(row = 0, column = 1, sticky = "n")
 
     @staticmethod
     def compare_scenes(in_a, in_b):
@@ -870,14 +945,17 @@ class TranslationWindow:
         return 0
 
     def init_scene_selector_tree(self):
-        self.frame_tree = tk.Frame(self.frame_editing, borderwidth=20)
+        self.frame_tree = tk.Frame(self.frame_editing, borderwidth=5)
         self.scene_tree = Treeview(
             self.frame_tree,
-            height=21,
+            height=23,
             style="smallFont.Treeview"
         )
-        self.scene_tree.column('#0', anchor='w', width=320)
+        self.scene_tree.column('#0', anchor='w', width=290)
         self.scene_tree.heading('#0', text='Game text', anchor='center')
+        self.scrollbar_scene_tree = tk.Scrollbar(self.frame_tree)
+        self.scene_tree.config(yscrollcommand=self.scrollbar_scene_tree.set)
+        self.scrollbar_scene_tree.config(command=self.scene_tree.yview)
 
         # Add all of the scene names to the treeview
         scene_names = self._translation_db.scene_names()
@@ -951,10 +1029,11 @@ class TranslationWindow:
         insert_non_day_scene_tree('misc', misc_scenes)
 
         # Double-click scenes to load
-        self.scene_tree.bind('<Double-Button-1>', self.load_scene)
-
+        # self.scene_tree.bind('<Double-Button-1>', self.load_scene)
+        self.scene_tree.bind('<<TreeviewSelect>>', self.load_scene)
         self.scene_tree.grid(row=0, column=0, padx=5, pady=5, sticky='nsew')
-        self.frame_tree.pack(side=tk.LEFT)
+        self.scrollbar_scene_tree.grid(row=0, column=1, sticky="ns")
+        self.frame_tree.grid(row = 0, column = 0, sticky = "n")
 
     def load_scene(self, _event):
         # Get the selected scene id
@@ -979,12 +1058,14 @@ class TranslationWindow:
                 modifiers.append('+')
             if line.is_choice:
                 modifiers.append('?')
+            if line.offset in self._translation_db._overrides_by_offset:
+                modifiers.append('o')
             self.listbox_offsets.insert(
                 idx,
                 "%03d: %05d %s" % (
                     line.page_number,
                     line.offset,
-                    ''.join(modifiers)
+                    ' '.join(modifiers)
                 )
             )
             tl_info = self._translation_db.tl_line_with_hash(line.jp_hash)
@@ -1018,8 +1099,14 @@ class TranslationWindow:
         scene_lines = self._translation_db.lines_for_scene(self._loaded_scene)
         selected_line = scene_lines[self._loaded_offset]
 
-        # Get the translation data for this JP hash
-        tl_info = self._translation_db.tl_line_with_hash(selected_line.jp_hash)
+        # Get the translation data for this JP hash or offset
+        offset = selected_line.offset
+        jp_hash = selected_line.jp_hash
+        text_by_hash = self._translation_db.tl_line_with_hash(jp_hash)
+        text_for_sha = f"Text for sha:\n{text_by_hash.en_text}\n" if text_by_hash.en_text else ""
+        comment_for_sha = f"Comment for sha:\n{text_by_hash.comment}\n" if text_by_hash.comment else ""
+        tl_info = self._translation_db.tl_line_for_cmd(selected_line)
+        sha_count, names_offsets = self.find_sha_lines(jp_hash)
 
         # Update the text fields
         with self.editable_orig_text():
@@ -1027,7 +1114,11 @@ class TranslationWindow:
             self.text_translated.delete("1.0", tk.END)
             self.text_comment.delete("1.0", tk.END)
 
-            self.text_orig.insert("1.0", tl_info.jp_text)
+            self.text_orig.insert("1.0", f"{tl_info.jp_text}\n"
+                f"{sha_count} sha: {jp_hash} offset: {offset}\n"
+                f"{text_for_sha}{comment_for_sha}"
+                f"{sha_count} entries appears in:\n"
+                f"{chr(10).join(map(' offset: '.join, names_offsets))}")
             self.text_translated.insert("1.0", tl_info.en_text or "")
             self.text_comment.insert("1.0", tl_info.comment or "")
 
@@ -1045,9 +1136,9 @@ class TranslationWindow:
         self._name_day.set('No day loaded ')
 
         # UI containers
-        self.frame_info = tk.Frame(self._root, borderwidth=20)
-        self.frame_local_tl = tk.Frame(self.frame_info, borderwidth=10)
-        self.frame_global_tl = tk.Frame(self.frame_info, borderwidth=10)
+        self.frame_info = tk.Frame(self._root, borderwidth=5)
+        self.frame_local_tl = tk.Frame(self.frame_info, borderwidth=0)
+        self.frame_global_tl = tk.Frame(self.frame_info, borderwidth=0)
 
         # Label showing the translation percentage for the loaded day
         self.label_percent_translated_day = tk.Label(
@@ -1090,7 +1181,7 @@ class TranslationWindow:
         self.frame_global_tl.grid(row=0, column=1, padx=10)
 
         # Pack top info frame
-        self.frame_info.grid(row=1, column=1)
+        self.frame_info.grid(row=0, column=0)
 
     def load_style(self):
         self._style = Style()
@@ -1109,6 +1200,20 @@ class TranslationWindow:
             "smallFont.Treeview.Heading",
             font='TkDefaultFont 11'
         )
+        self._style.configure(
+            "TFrame", relief= tk.RAISED
+        )
+
+    def find_sha_lines(self, sha):
+        scenes = self._translation_db._scene_map
+        sha_count = 0
+        names_offsets = []
+        for name, commands in scenes.items():
+            for command in range(len(commands)):
+                if commands[command].jp_hash == sha:
+                    names_offsets.append([name, str(commands[command].offset)])
+                    sha_count += 1
+        return (sha_count, names_offsets)
 
     def on_keyevent(self, event):
         # Ctrl-C exits

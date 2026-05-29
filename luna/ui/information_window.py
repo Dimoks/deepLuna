@@ -29,6 +29,11 @@ class InformationWindow:
         )
         self.explanations.pack()
 
+        self._root.update_idletasks()
+        x = (self._root.winfo_screenwidth() - self._root.winfo_reqwidth()) / 2
+        y = (self._root.winfo_screenheight() - self._root.winfo_reqheight()) / 2
+        self._root.wm_geometry("+%d+%d" % (x, y))
+
     @staticmethod
     def btn_open_github():
-        webbrowser.open_new("https://github.com/Hakanaou/deepLuna")
+        webbrowser.open_new("https://github.com/Dimoks/deepLuna")

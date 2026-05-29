@@ -70,6 +70,11 @@ class StartWindow:
 
         self._frame_buttons.pack(side=tk.LEFT)
 
+        self._root.update_idletasks()
+        x = (self._root.winfo_screenwidth() - self._root.winfo_reqwidth()) / 2
+        y = (self._root.winfo_screenheight() - self._root.winfo_reqheight()) / 2
+        self._root.wm_geometry("+%d+%d" % (x, y))
+
     def mainloop(self):
         self._root.mainloop()
 
@@ -147,6 +152,12 @@ class StartWindow:
                 command=self.extract_database
             )
             warning_button.grid(row=1, column=1, pady=10)
+
+            self._warning.update()
+            x = (self._warning.winfo_screenwidth() - self._warning.winfo_reqwidth()) / 2
+            y = (self._warning.winfo_screenheight() - self._warning.winfo_reqheight()) / 2
+            self._warning.wm_geometry("+%d+%d" % (x, y))
+
             return
 
         # Attempt to extract the DB
@@ -205,3 +216,8 @@ class StartWindow:
                 command=self.btn_cancel_warning
             )
             warning_button.grid(row=1, column=0, pady=10)
+
+            self._warning.update()
+            x = (self._warning.winfo_screenwidth() - self._warning.winfo_reqwidth()) / 2
+            y = (self._warning.winfo_screenheight() - self._warning.winfo_reqheight()) / 2
+            self._warning.wm_geometry("+%d+%d" % (x, y))
